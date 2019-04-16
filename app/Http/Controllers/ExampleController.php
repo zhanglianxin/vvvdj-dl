@@ -57,6 +57,8 @@ class ExampleController extends Controller
 
             $arr = mb_split('/', mb_split('.mp4?', $src)[0]);
             $filename = end($arr) . '.mp4';
+//            shell_exec("wget '$src' -O ../storage/app/$filename -q"); // hehe
+//            shell_exec("curl '$src' -o ../storage/app/$filename -s"); // hehe
             $c = new Client(['base_uri' => $src,]);
             $body = $c->request('get', '', ['stream' => true,])->getBody();
             $fs = app('filesystem')->disk('local');
