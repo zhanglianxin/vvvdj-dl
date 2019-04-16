@@ -1,9 +1,9 @@
 <?php
 
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    (new Dotenv\Dotenv(__DIR__.'/../'))->load();
+    (new Dotenv\Dotenv(__DIR__ . '/../'))->load();
 } catch (Dotenv\Exception\InvalidPathException $e) {
     //
 }
@@ -20,12 +20,18 @@ try {
 */
 
 $app = new Laravel\Lumen\Application(
-    realpath(__DIR__.'/../')
+    realpath(__DIR__ . '/../')
 );
 
 $app->withFacades();
 
 // $app->withEloquent();
+
+$app->singleton('filesystem', function ($app) {
+    return $app->loadComponent('filesystems', 'Illuminate\Filesystem\FilesystemServiceProvider', 'filesystem');
+});
+
+$app->configure('filesystems');
 
 /*
 |--------------------------------------------------------------------------
@@ -48,9 +54,11 @@ $app->singleton(
     App\Console\Kernel::class
 );
 
-$app->configureMonologUsing(function(Monolog\Logger $monolog) use ($app) {
+// daily log
+$app->configureMonologUsing(function (Monolog\Logger $monolog) use ($app) {
     return $monolog->pushHandler(
-        new \Monolog\Handler\RotatingFileHandler($app->storagePath().'/logs/lumen.log', 5)
+        (new \Monolog\Handler\RotatingFileHandler($app->storagePath() . '/logs/lumen.log', 5))
+            ->setFormatter(new Monolog\Formatter\LineFormatter(null, null, true, true))
     );
 });
 
@@ -102,7 +110,7 @@ $app->configureMonologUsing(function(Monolog\Logger $monolog) use ($app) {
 $app->router->group([
     'namespace' => 'App\Http\Controllers',
 ], function ($router) {
-    require __DIR__.'/../routes/web.php';
+    require __DIR__ . '/../routes/web.php';
 });
 
 return $app;
