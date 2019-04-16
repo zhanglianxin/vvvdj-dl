@@ -2,6 +2,7 @@
 
 use Facebook\WebDriver\WebDriver;
 use Facebook\WebDriver\WebDriverBy;
+use Facebook\WebDriver\WebDriverExpectedCondition;
 
 /**
  * Check if element exists
@@ -13,10 +14,12 @@ use Facebook\WebDriver\WebDriverBy;
 function isElementExist(WebDriver $driver, WebDriverBy $locator)
 {
     try {
-        $elem = $driver->findElement($locator);
-        return $elem;
+        $driver->wait(5)->until(function () use ($locator) {
+            return WebDriverExpectedCondition::visibilityOfElementLocated($locator);
+        });
+        return $driver->findElement($locator);
     } catch (\Exception $e) {
-        echo 'element is not found!';
+        app('log')->error($e);
         return false;
     }
 }
