@@ -48,7 +48,8 @@ class VvvdjDl extends Command
         putenv('webdriver.chrome.driver=' . env('CHROME_DRIVER', shell_exec('which chromedriver')));
         $caps = DesiredCapabilities::chrome();
         $options = new ChromeOptions();
-        $options->addArguments(['--window-size=1920,1080', '--disable-gpu', '--headless']);
+        $options->addArguments(['--window-size=1920,1080', '--disable-gpu', '--headless',
+            '--no-sandbox', '--disable-dev-shm-usage']);
         $caps->setCapability(ChromeOptions::CAPABILITY, $options);
         $driver = ChromeDriver::start($caps);
         $driver->get($url);
