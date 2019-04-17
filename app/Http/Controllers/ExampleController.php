@@ -20,6 +20,13 @@ class ExampleController extends Controller
         //
     }
 
+    /**
+     *
+     * @deprecated
+     * @param string $url
+     * @return string
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function hello($url = 'http://www.vvvdj.com/radio/3454.html')
     {
         static $count = 0;

@@ -15,4 +15,4 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
-$router->get('/hello', 'ExampleController@hello');
+//$router->get('/hello', 'ExampleController@hello');
