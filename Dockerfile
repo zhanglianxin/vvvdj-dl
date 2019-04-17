@@ -7,4 +7,4 @@ RUN apk update && apk add --no-cache chromium chromium-chromedriver zlib-dev lib
         CHROME_BIN=/usr/bin/chromium-browser; \
         CHROME_PATH=/usr/lib/chromium/; URL= \
     && chmod +x entrypoint.sh
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
