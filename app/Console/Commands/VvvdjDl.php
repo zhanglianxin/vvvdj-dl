@@ -56,10 +56,10 @@ class VvvdjDl extends Command
 
         $ids = $driver->executeScript('return MUSICID;');
         $idsLen = count(mb_split(',', $ids));
-        static $count = 0;
 
         try {
-            while ($count < $idsLen) {
+            for ($count = 0; $count <= $idsLen; $count++) {
+                $currentUrl = $driver->getCurrentURL();
                 $audio = WebDriverBy::cssSelector('audio#jp_audio_0');
                 $anchorNext = WebDriverBy::xpath('//*[@id="ico-next"]/a');
 
@@ -67,26 +67,28 @@ class VvvdjDl extends Command
                 if (!$elem) {
                     sleep(floor(mt_rand(3000, 5000) / 1000));
                 }
+                $id = $elem->getID();
                 $src = $elem->getAttribute('src');
                 if (!$src) {
-                    app('log')->info('audio', compact('elem', 'src'));
+                    app('log')->info('audio', compact('id', 'src'));
                     throw new \Exception('audio elem not found');
                 } else {
                     $arr = mb_split('/', mb_split('.mp4?', $src)[0]);
                     $filename = end($arr) . '.mp4';
 
-                    $writeSize = $this->save2File($filename, $this->getContent($src));
-                    if (false !== $writeSize) {
-                        $this->line($filename);
+                    if (0 != $count) {
+                        $writeSize = $this->save2File($filename, $this->getContent($src));
+                        if (false !== $writeSize) {
+                            $this->line($filename);
+                        }
                     }
 
                     $nextBtn = isElementExist($driver, $anchorNext);
                     if (!$nextBtn) {
-                        sleep(floor(mt_rand(2000, 3000) / 1000));
+                        sleep(floor(mt_rand(1000, 2000) / 1000));
                     }
+                    app('log')->debug('current', compact('currentUrl', 'count', 'src', 'filename'));
                     $nextBtn->click();
-                    app('log')->debug('current', compact('count', 'src', 'filename'));
-                    $count++;
                 }
             }
         } catch (\Exception $e) {
