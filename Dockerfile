@@ -4,7 +4,7 @@ RUN apk update && apk add --no-cache chromium chromium-chromedriver zlib-dev lib
 ADD . /data
 WORKDIR /data
 ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_BIN=/usr/bin/chromium-browser \
     CHROME_PATH=/usr/lib/chromium/ URL=
 RUN composer install && cp .env.example .env \
     && sed -i "s|CHROME_DRIVER=.*|CHROME_DRIVER=`which chromedriver`|" .env
