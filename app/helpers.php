@@ -2,21 +2,21 @@
 
 use Facebook\WebDriver\WebDriver;
 use Facebook\WebDriver\WebDriverBy;
+use Facebook\WebDriver\WebDriverElement;
+use Facebook\WebDriver\WebDriverExpectedCondition;
 
 /**
- * Check if element exists
+ * Wait element and return it, or throw an exception
  *
  * @param WebDriver $driver
  * @param WebDriverBy $locator
- * @return bool|\Facebook\WebDriver\WebDriverElement
+ * @return WebDriverElement
+ * @throws \Facebook\WebDriver\Exception\NoSuchElementException
+ * @throws \Facebook\WebDriver\Exception\TimeOutException
  */
-function isElementExist(WebDriver $driver, WebDriverBy $locator)
+function getElement(WebDriver $driver, WebDriverBy $locator): WebDriverElement
 {
-    try {
-        // TODO optimize it by using wait...until
-        return $driver->findElement($locator);
-    } catch (\Exception $e) {
-        app('log')->error($e);
-        return false;
-    }
+    return $driver->wait(10, 500)
+        ->until(WebDriverExpectedCondition::presenceOfElementLocated($locator),
+            'element not found');
 }

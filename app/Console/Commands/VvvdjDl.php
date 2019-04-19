@@ -6,12 +6,24 @@ use Facebook\WebDriver\Chrome\ChromeDriver;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\WebDriverBy;
+use Facebook\WebDriver\WebDriverExpectedCondition;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\RequestOptions;
 use Illuminate\Console\Command;
+use Psr\Http\Message\ResponseInterface;
 
 class VvvdjDl extends Command
 {
+    const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Safari/605.1.15';
+
+    /**
+     * Hold music names
+     *
+     * @var array
+     */
+    private $musicNames;
+
     /**
      * The name and signature of the console command.
      *
@@ -40,56 +52,43 @@ class VvvdjDl extends Command
      * Execute the console command.
      *
      * @return mixed
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function handle()
     {
         $url = $this->argument('url');
         putenv('webdriver.chrome.driver=' . env('CHROME_DRIVER', shell_exec('which chromedriver')));
+
         $caps = DesiredCapabilities::chrome();
         $options = new ChromeOptions();
         $options->addArguments(['--window-size=1920,1080', '--disable-gpu', '--headless',
-            '--no-sandbox', '--disable-dev-shm-usage']);
+            '--no-sandbox', '--disable-dev-shm-usage', '--mute-audio',]);
         $caps->setCapability(ChromeOptions::CAPABILITY, $options);
+
         $driver = ChromeDriver::start($caps);
         $driver->get($url);
 
         $ids = $driver->executeScript('return MUSICID;');
+        $this->getMusicNames($ids);
         $idsLen = count(mb_split(',', $ids));
 
         try {
-            for ($count = 0; $count <= $idsLen; $count++) {
-                $currentUrl = $driver->getCurrentURL();
-                $audio = WebDriverBy::cssSelector('audio#jp_audio_0');
+            for ($count = 0; $count < $idsLen; $count++) {
+                $url = $driver->getCurrentURL();
+                $audio = WebDriverBy::cssSelector('audio#jp_audio_0[src]');
                 $anchorNext = WebDriverBy::xpath('//*[@id="ico-next"]/a');
 
-                $elem = isElementExist($driver, $audio);
-                if (!$elem) {
-                    sleep(floor(mt_rand(3000, 5000) / 1000));
-                }
-                $id = $elem->getID();
-                $src = $elem->getAttribute('src');
-                if (!$src) {
-                    app('log')->info('audio', compact('id', 'src'));
-                    throw new \Exception('audio elem not found');
-                } else {
-                    $arr = mb_split('/', mb_split('.mp4?', $src)[0]);
-                    $filename = end($arr) . '.mp4';
+                $src = getElement($driver, $audio)->getAttribute('src');
+                app('log')->info('current', compact('count', 'url', 'src'));
 
-                    if (0 != $count) {
-                        $writeSize = $this->save2File($filename, $this->getContent($src));
-                        if (false !== $writeSize) {
-                            $this->line($filename);
-                        }
-                    }
+                $this->save2File($src);
 
-                    $nextBtn = isElementExist($driver, $anchorNext);
-                    if (!$nextBtn) {
-                        sleep(floor(mt_rand(1000, 2000) / 1000));
-                    }
-                    app('log')->debug('current', compact('currentUrl', 'count', 'src', 'filename'));
-                    $nextBtn->click();
-                }
+                getElement($driver, $anchorNext)->click();
+                // wait url changed
+                $driver->wait(3, 250)
+                    ->until(WebDriverExpectedCondition::not(
+                        WebDriverExpectedCondition::urlIs($url)), 'not forward');
+                // WELL, DO NOT DISTURB THE SERVER
+                usleep(mt_rand(1000, 3000));
             }
         } catch (\Exception $e) {
             app('log')->error($e);
@@ -100,41 +99,64 @@ class VvvdjDl extends Command
 
     /**
      * @param string $url
-     * @return string
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    private function getContent(string $url): string
+    private function save2File(string $url): void
     {
+        $arr = mb_split('/', mb_split('.mp4?', $url)[0]);
+        $filename = end($arr) . '.mp4';
+
         $client = new Client([
             'base_uri' => $url,
+            'headers' => [
+                'User-Agent' => self::UA,
+            ],
         ]);
-        return $client->request('get', '', [
+        $client->requestAsync('get', '', [
             RequestOptions::STREAM => true,
-            RequestOptions::SYNCHRONOUS => true, // TODO request async
-        ])->getBody()->getContents();
+        ])->then(function (ResponseInterface $res) use ($filename) {
+            if ($this->write2File($filename, $res->getBody()->getContents())) {
+                $this->line($filename);
+            }
+        }, function (RequestException $e) use ($filename) {
+            $this->error($filename);
+            app('log')->error($e);
+        });
     }
 
     /**
      * @param string $ids
-     * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    private function getMusicNames(string $ids): array
+    private function getMusicNames(string $ids): void
     {
+        $url = 'http://www.vvvdj.com/play/ajax/temp';
         $client = new Client([
-            'base_uri' => "http://www.vvvdj.com/play/ajax/temp?ids={$ids}",
+            'base_uri' => $url,
+            'headers' => [
+                'X-Requested-With' => 'XMLHttpRequest',
+                'User-Agent' => self::UA,
+            ],
         ]);
-        $contents = $client->request('get')->getBody()->getContents();
-        $result = json_decode($contents, true);
-        return 200 == $result['Result'] ? $result['Data'] : null;
+        $client->requestAsync('get', null, [
+            'query' => [
+                'ids' => $ids,
+            ],
+            RequestOptions::SYNCHRONOUS => true, // MUST BUT WHY??
+        ])->then(function (ResponseInterface $res) {
+                $result = json_decode(json_decode($res->getBody()->getContents()), true);
+                $this->musicNames = 200 == $result['Result'] ? $result['Data'] : null;
+                app('log')->info('musicNames', $this->musicNames);
+            }, function (RequestException $e) {
+                $this->warn('fail to get music names');
+                app('log')->error($e);
+            });
     }
 
     /**
      * @param string $filename
      * @param string $content
-     * @return int|bool
+     * @return bool
      */
-    private function save2File(string $filename, string $content)
+    private function write2File(string $filename, string $content): bool
     {
         $fs = app('filesystem')->disk('local');
         if ($fs->exists($filename)) {
