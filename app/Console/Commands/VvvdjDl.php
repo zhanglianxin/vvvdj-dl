@@ -80,7 +80,10 @@ class VvvdjDl extends Command
                 $src = getElement($driver, $audio)->getAttribute('src');
                 app('log')->info('current', compact('count', 'url', 'src'));
 
-                $this->save2File($src);
+                $arr = mb_split('/', mb_split('.mp4?', $src)[0]);
+                $filename = end($arr) . '.mp4';
+//                $this->save2File($src, $filename);
+                shell_exec("(wget '$src' -q -O storage/app/$filename) &");
 
                 getElement($driver, $anchorNext)->click();
                 // wait url changed
@@ -99,12 +102,10 @@ class VvvdjDl extends Command
 
     /**
      * @param string $url
+     * @param string $filename
      */
-    private function save2File(string $url): void
+    private function save2File(string $url, string $filename): void
     {
-        $arr = mb_split('/', mb_split('.mp4?', $url)[0]);
-        $filename = end($arr) . '.mp4';
-
         $client = new Client([
             'base_uri' => $url,
             'headers' => [
@@ -142,13 +143,13 @@ class VvvdjDl extends Command
             ],
             RequestOptions::SYNCHRONOUS => true, // MUST BUT WHY??
         ])->then(function (ResponseInterface $res) {
-                $result = json_decode(json_decode($res->getBody()->getContents()), true);
-                $this->musicNames = 200 == $result['Result'] ? $result['Data'] : null;
-                app('log')->info('musicNames', $this->musicNames);
-            }, function (RequestException $e) {
-                $this->warn('fail to get music names');
-                app('log')->error($e);
-            });
+            $result = json_decode(json_decode($res->getBody()->getContents()), true);
+            $this->musicNames = 200 == $result['Result'] ? $result['Data'] : null;
+            app('log')->info('musicNames', $this->musicNames);
+        }, function (RequestException $e) {
+            $this->warn('fail to get music names');
+            app('log')->error($e);
+        });
     }
 
     /**
@@ -156,12 +157,8 @@ class VvvdjDl extends Command
      * @param string $content
      * @return bool
      */
-    private function write2File(string $filename, string $content): bool
+    private function write2File(string $filename, $content): bool
     {
-        $fs = app('filesystem')->disk('local');
-        if ($fs->exists($filename)) {
-            $fs->delete($filename);
-        }
-        return $fs->put($filename, $content);
+        return app('filesystem')->disk('local')->putStream($filename, $content);
     }
 }
