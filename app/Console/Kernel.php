@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Console\Commands\GitHubInfo;
 use App\Console\Commands\VvvdjDl;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Lumen\Console\Kernel as ConsoleKernel;
@@ -15,6 +16,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         VvvdjDl::class,
+        GitHubInfo::class,
     ];
 
     /**
