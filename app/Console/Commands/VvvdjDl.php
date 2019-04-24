@@ -141,7 +141,6 @@ class VvvdjDl extends Command
             'query' => [
                 'ids' => $ids,
             ],
-            RequestOptions::SYNCHRONOUS => true, // MUST BUT WHY??
         ])->then(function (ResponseInterface $res) {
             $result = json_decode(json_decode($res->getBody()->getContents()), true);
             $this->musicNames = 200 == $result['Result'] ? $result['Data'] : null;
@@ -149,7 +148,7 @@ class VvvdjDl extends Command
         }, function (RequestException $e) {
             $this->warn('fail to get music names');
             app('log')->error($e);
-        });
+        })->wait();
     }
 
     /**
