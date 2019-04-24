@@ -82,8 +82,8 @@ class VvvdjDl extends Command
 
                 $arr = mb_split('/', mb_split('.mp4?', $src)[0]);
                 $filename = end($arr) . '.mp4';
-//                $this->save2File($src, $filename);
-                shell_exec("(wget '$src' -q -O storage/app/$filename) &");
+                $this->save2File($src, $filename);
+//                shell_exec("(wget '$src' -q -O storage/app/$filename) &");
 
                 getElement($driver, $anchorNext)->click();
                 // wait url changed
@@ -121,7 +121,7 @@ class VvvdjDl extends Command
         }, function (RequestException $e) use ($filename) {
             $this->error($filename);
             app('log')->error($e);
-        });
+        })->wait();
     }
 
     /**
@@ -159,6 +159,6 @@ class VvvdjDl extends Command
      */
     private function write2File(string $filename, $content): bool
     {
-        return app('filesystem')->disk('local')->putStream($filename, $content);
+        return app('filesystem')->disk('local')->put($filename, $content);
     }
 }
