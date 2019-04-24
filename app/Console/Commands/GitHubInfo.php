@@ -6,6 +6,29 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Console\Command;
 
+/**
+ * 说个拿 openbilibili forked 仓库的思路：
+ *
+ * 0. `/users/$username/followers?page=1`
+ *  遍历 openbilibili 这个用户的 followers
+ * 1. `/users/$username/events/public`
+ *  遍历每个用户的 public events，
+ *  筛选时间大于源仓库 go-common 的创建时间的 ForkEvent，拿到可疑 repo
+ * （时间不长一般用户不会产生太多内容，有需要可遍历第二页，分页参数同上）
+ * 2. `/repos/$username/$repo`, `/repos/$username/$repo/readme`
+ *  如果对 repo 请求返回 200，则请求 readme 文件，与源进行比对
+ *
+ * 补充：
+ *  考虑到某些高级吃瓜群众，可能会重新建立备份仓库，第 1 步可以连同 CreateEvent 一起遍历出来
+ *
+ * ------------------------------------------------------------------
+ *
+ * 发现源码不要 fork，聪明地留一份 copy
+ *  https://help.github.com/en/articles/duplicating-a-repository
+ *
+ * 最后：
+ *  咱家虽然没拿到源码，趁机学一波 git 和 GitHub API 的使用还是不亏的
+ */
 class GitHubInfo extends Command
 {
     const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Safari/605.1.15';
