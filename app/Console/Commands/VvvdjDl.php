@@ -25,6 +25,13 @@ class VvvdjDl extends Command
     private $musicNames;
 
     /**
+     * The directory to save file
+     *
+     * @var string
+     */
+    private $directory;
+
+    /**
      * The name and signature of the console command.
      *
      * @var string
@@ -56,6 +63,8 @@ class VvvdjDl extends Command
     public function handle()
     {
         $url = $this->argument('url');
+        $arr = mb_split('/', mb_split('.html', $url)[0]);
+        $this->directory = end($arr) . '/';
         putenv('webdriver.chrome.driver=' . env('CHROME_DRIVER', shell_exec('which chromedriver')));
 
         $caps = DesiredCapabilities::chrome();
@@ -87,7 +96,7 @@ class VvvdjDl extends Command
 
                 getElement($driver, $anchorNext)->click();
                 // wait url changed
-                $driver->wait(3, 250)
+                $driver->wait(5, 250)
                     ->until(WebDriverExpectedCondition::not(
                         WebDriverExpectedCondition::urlIs($url)), 'not forward');
                 // WELL, DO NOT DISTURB THE SERVER
@@ -95,6 +104,7 @@ class VvvdjDl extends Command
             }
         } catch (\Exception $e) {
             app('log')->error($e);
+            $this->error($e->getMessage());
         } finally {
             $driver->quit();
         }
@@ -153,11 +163,11 @@ class VvvdjDl extends Command
 
     /**
      * @param string $filename
-     * @param string $content
+     * @param $content
      * @return bool
      */
     private function write2File(string $filename, $content): bool
     {
-        return app('filesystem')->disk('local')->put($filename, $content);
+        return app('filesystem')->disk('local')->put($this->directory . $filename, $content);
     }
 }
