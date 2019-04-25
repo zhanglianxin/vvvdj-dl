@@ -168,6 +168,6 @@ class VvvdjDl extends Command
      */
     private function write2File(string $filename, $content): bool
     {
-        return app('filesystem')->disk('local')->writeStream($this->directory . $filename, $content);
+        return app('filesystem')->disk('local')->write($this->directory . $filename, $content);
     }
 }
