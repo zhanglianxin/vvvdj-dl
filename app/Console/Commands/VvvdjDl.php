@@ -106,7 +106,7 @@ class VvvdjDl extends Command
             app('log')->error($e);
             $this->error($e->getMessage());
         } finally {
-            $driver->quit();
+            $driver->close();
         }
     }
 
